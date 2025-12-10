@@ -12,7 +12,7 @@ def compute_fft(sig, fs=51200, N=512):
 
     # 3) FFT
     fft_vals = np.fft.rfft(sig_win, n=N)
-    amp = np.abs(fft_vals) * 2 / N
+    amp = np.abs(fft_vals) * 2 / np.sum(window)
 
     freqs = np.fft.rfftfreq(N, 1/fs)
     return freqs, amp

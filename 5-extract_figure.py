@@ -6,9 +6,17 @@ from scipy.signal import find_peaks
 from scipy.ndimage import median_filter
 
 def extract_features(freq, amp, force_label):
+    # Use original amplitude for peak detection
+    amp_for_peaks = amp
+    
+    # Use smoothed amplitude for other statistical features
     amp_smooth = median_filter(amp, size=5)
 
-    def compute_band(fe, am):
+    def compute_band(fe, am, am_peak=None):
+        # If peak detection amplitude is not provided, use the current amplitude
+        if am_peak is None:
+            am_peak = am
+            
         total_energy = np.sum(am ** 2)
 
         centroid = np.sum(fe * am) / (np.sum(am) + 1e-12)
@@ -19,18 +27,19 @@ def extract_features(freq, amp, force_label):
         psd = am / (np.sum(am) + 1e-12)
         spectral_entropy = -np.sum(psd * np.log(psd + 1e-12))
 
-        peaks, _ = find_peaks(am, prominence=np.max(am) * 0.05)
+        # Use original amplitude for peak detection
+        peaks, _ = find_peaks(am_peak, prominence=np.max(am_peak) * 0.05)
 
         peak_freqs = np.zeros(peak_num)
         peak_amps = np.zeros(peak_num)
 
-        top = sorted(peaks, key=lambda p: am[p], reverse=True)[:peak_num]
+        top = sorted(peaks, key=lambda p: am_peak[p], reverse=True)[:peak_num]
         for i, p in enumerate(top):
             peak_freqs[i] = fe[p]
-            peak_amps[i] = am[p]
+            peak_amps[i] = am_peak[p]
 
-        main_peak_freq = peak_freqs[0]
-        main_peak_amp = peak_amps[0]
+        main_peak_freq = peak_freqs[0] if len(top) > 0 else 0
+        main_peak_amp = peak_amps[0] if len(top) > 0 else 0
 
         return {
             "total_energy": total_energy,
@@ -43,14 +52,20 @@ def extract_features(freq, amp, force_label):
             "peak_amps": peak_amps,
         }
 
-    # ===== Frequency band segmentation =====
+    # Frequency band segmentation
     mask_low = (freq < 8000) & (freq >= 100)
-
     mask_high = (freq >= 8000) & (freq < 20000)
 
-    band_full = compute_band(freq, amp_smooth)
-    band_low = compute_band(freq[mask_low], amp_smooth[mask_low])
-    band_high = compute_band(freq[mask_high], amp_smooth[mask_high])
+    # Prepare smoothed and original amplitudes for each frequency band
+    amp_smooth_low = amp_smooth[mask_low]
+    amp_peaks_low = amp_for_peaks[mask_low]
+    
+    amp_smooth_high = amp_smooth[mask_high]
+    amp_peaks_high = amp_for_peaks[mask_high]
+
+    band_full = compute_band(freq, amp_smooth, amp_for_peaks)
+    band_low = compute_band(freq[mask_low], amp_smooth_low, amp_peaks_low)
+    band_high = compute_band(freq[mask_high], amp_smooth_high, amp_peaks_high)
 
     # Assemble feature dictionary
     feat = {"force": force_label}
@@ -111,10 +126,7 @@ if __name__ == "__main__":
     df_force.to_csv(f"{out_dir}/fft_features_by_force.csv")
     print(f"Saved: {out_dir}/fft_features_by_force.csv")
 
-
-    # =========================================================
     # Print summary statistics
-    # =========================================================
     print("\n===== Full-band features (averaged) =====")
     print(df_force[[f"full_{k}" for k in [
         "main_peak_freq","main_peak_amp","total_energy",
@@ -133,12 +145,7 @@ if __name__ == "__main__":
         "centroid","bandwidth","spectral_entropy"
     ]]])
 
-
-    # =========================================================
     # Visualization functions
-    # =========================================================
-
-
     def plot_force_relation(df_force, feature, ylabel):
         plt.figure()
         plt.plot(df_force.index, df_force[feature], marker="o")
@@ -148,7 +155,6 @@ if __name__ == "__main__":
         plt.grid(True)
         plt.savefig(f"{out_dir}/{feature}.png", dpi=200)
         plt.close()
-
 
     # Plot all combinations: three bands × six core features
     for prefix in ["full", "low", "high"]:
@@ -160,10 +166,7 @@ if __name__ == "__main__":
                 f"{prefix.capitalize()} {feature.replace('_', ' ').title()}"
             )
 
-
-    # =========================================================
     # Heatmap of full-band peak frequencies
-    # =========================================================
     plt.figure(figsize=(8, 6))
     peak_matrix = df_force[[f"full_peak{i}_freq" for i in range(1, peak_num + 1)]].values
     plt.imshow(peak_matrix, aspect="auto", cmap="viridis")
