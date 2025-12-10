@@ -2,10 +2,19 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-def compute_fft(sig, N=1024, fs=51200):
-    fft_vals = np.fft.rfft(sig)
+def compute_fft(sig, fs=51200, N=512):
+    # 1) 去直流
+    sig = sig - np.mean(sig)
+
+    # 2) 加窗
+    window = np.hanning(N)
+    sig_win = sig * window
+
+    # 3) FFT
+    fft_vals = np.fft.rfft(sig_win, n=N)
     amp = np.abs(fft_vals) * 2 / N
-    freqs = np.fft.rfftfreq(N, d=1/fs)
+
+    freqs = np.fft.rfftfreq(N, 1/fs)
     return freqs, amp
 
 if __name__ == "__main__":

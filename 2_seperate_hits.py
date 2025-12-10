@@ -5,7 +5,7 @@ from sklearn.preprocessing import MinMaxScaler
 from skimage.filters import threshold_otsu
 
 def load_signal(txt_file):
-    print(f"读取：{txt_file}")
+    print(f"Reading signal from file: {txt_file}")
     sig = np.loadtxt(txt_file)
     return sig
 
@@ -54,7 +54,7 @@ def detect_intervals(env_norm, th):
 # Step4: Merge intervals based on distance
 def merge_intervals(intervals, merge_ratio=0.002):
     """
-    merge_ratio：占信号总长的比例
+    merge_ratio: ratio to the length of the signal
     """
     if not intervals:
         return []
@@ -74,7 +74,7 @@ def merge_intervals(intervals, merge_ratio=0.002):
 
     merged.append((cur_l, cur_r))
 
-    print("合并后敲击次数：", len(merged))
+    print("Merged intervals:", len(merged))
     return merged
 
 
@@ -106,7 +106,7 @@ if __name__ == "__main__":
     forces = [400, 800, 1200, 1600, 2000, 2400, 2800, 3200, 3600, 4000]
     for force in forces:
         txt = f"槽楔模型测试数据/acquisitionData-{force}.txt"
-        out = f"output_auto/{force}"
+        out = f"output_auao/{force}"
 
         sig = load_signal(txt)
 

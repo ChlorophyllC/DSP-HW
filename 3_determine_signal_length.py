@@ -4,7 +4,7 @@ from glob import glob
 import matplotlib.pyplot as plt
 from scipy.ndimage import uniform_filter1d
 
-def find_interval(sig, smooth_len=25, energy_ratio=0.01):
+def find_interval(sig, smooth_len=25, energy_ratio=0.1):
     """
     Endpoints detection of a signal segment.
     
@@ -115,12 +115,12 @@ if __name__ == "__main__":
     forces = sorted(os.listdir(base), key=lambda x: int(x))
     all_lengths = []
 
-    # Step 1：统计所有 interval 的真实长度 Ltrue
+    # Step 1：Find the true length of each interval
     for force in forces:
         folder = os.path.join(base, force)
         files = sorted(glob(f"{folder}/interval_*.txt"))
 
-        print(f"{force} N：检测 {len(files)} 个间隔")
+        print(f"{force} N: {len(files)} intervals found.")
 
         for f in files:
             sig = np.loadtxt(f)

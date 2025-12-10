@@ -3,3 +3,8 @@ fft/
 normalized/
 output_auto/
 HW/
+槽楔模型测试数据/
+fft_features/
+figures/
+report.md
+force_freq_ana/
